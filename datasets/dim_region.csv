@@ -1,7 +1,0 @@
-region_id,region_name,country,channel,region_multiplier
-R01,North,Poland,Retail,0.97
-R02,South,Poland,Retail,0.99
-R03,East,Poland,Retail,0.95
-R04,West,Poland,Retail,1.02
-R05,Central,Poland,Retail,1.05
-R06,Online,Poland,E-Commerce,1.16

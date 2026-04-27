@@ -1,0 +1,479 @@
+MICROSOFT FABRIC PLANNING - PEŁNA PROPOZYCJA DEMO
+=================================================
+
+1. CEL DEMO
+-----------
+Pokazać, że Microsoft Fabric Planning pozwala przejść od analizy danych historycznych do planowania, forecastingu i zapisu planu (writeback) w jednym, spójnym środowisku:
+
+- dane historyczne i planistyczne są w tej samej platformie,
+- model semantyczny Power BI jest wspólną warstwą biznesową,
+- użytkownik biznesowy pracuje w Planning sheet bez wychodzenia poza Fabric,
+- plan i forecast mogą być zapisane do docelowej tabeli writeback,
+- dashboard Power BI może natychmiast pokazać odchylenia Actual vs Budget vs Forecast.
+
+Scenariusz opiera się na oficjalnych funkcjach Microsoft Fabric Plan (preview): Planning sheets, Intelligence sheets, InfoBridge, Forecast, Scenarios oraz Writeback.
+
+
+2. PROPOZYCJA HISTORII BIZNESOWEJ
+---------------------------------
+Firma: Contoso Retail Polska
+
+Obszar:
+- sprzedaż detaliczna i e-commerce,
+- planowanie przychodów, rabatów, kosztów i marży,
+- analiza wpływu promocji, inflacji kosztów i wzrostu wolumenu.
+
+Problem biznesowy:
+- dane historyczne są dostępne, ale planowanie odbywa się w arkuszach rozproszonych po działach,
+- CFO chce jeden proces planistyczny,
+- dyrektor sprzedaży chce szybko porównywać scenariusze,
+- kontroling chce zapisywać uzgodniony plan do centralnej tabeli i od razu pokazywać wyniki na raportach.
+
+Wartość demo:
+- pokazujesz jeden wspólny model danych,
+- pokazujesz forecast zbudowany na historycznych actuals,
+- pokazujesz ręczne korekty planu,
+- pokazujesz writeback do tabeli w Fabric SQL database,
+- pokazujesz, że Power BI i planowanie działają nad tym samym kontekstem biznesowym.
+
+
+3. ZAKRES FUNKCJONALNY DEMO
+---------------------------
+W demo pokazujesz siedem kluczowych etapów:
+
+1) Ingest danych historycznych i referencyjnych do Fabric (Lakehouse)
+2) Zbudowanie modelu semantycznego (z danymi actuals i budget seed)
+3) Przygotowanie połączeń i utworzenie Plan item
+4) Utworzenie Planning sheet i podłączenie do semantic modelu
+5) Budżetowanie: data input columns zainicjowane z seed
+6) Forecast i scenariusze (what-if)
+7) Writeback i analiza wyników w Intelligence sheet / Power BI
+
+
+4. ARTEFAKTY, KTÓRE WARTO MIEĆ W WORKSPACE
+------------------------------------------
+W jednym workspace utwórz:
+
+- Lakehouse na dane demo (CSV → tabele)
+- Semantic model Power BI (na bazie Lakehouse)
+- Raport Power BI "Executive Planning Overview" (opcjonalnie, do porównania z Intelligence sheet)
+- Item "Plan (preview)" — przy tworzeniu Plan automatycznie powstanie Fabric SQL database do przechowywania metadanych planu
+- W ramach Plan: Planning sheet, Intelligence sheet
+
+Uwaga: SQL database na metadane planu tworzy się automatycznie przy tworzeniu Plan item. Nie musisz jej tworzyć ręcznie. Jeśli chcesz osobną bazę SQL na writeback, możesz ją utworzyć ręcznie.
+
+Rekomendowane nazwy:
+
+- Workspace: Fabric Planning Demo
+- Lakehouse: fpd-lakehouse
+- Semantic model: fpd-semantic-model
+- Report: fpd-exec-report (opcjonalnie)
+- Plan: fpd-sales-and-margin-plan
+
+
+5. DATASETY DO DEMO
+-------------------
+W katalogu datasets znajdują się następujące pliki:
+
+- dim_date_month.csv
+- dim_region.csv
+- dim_department.csv
+- dim_cost_center.csv
+- dim_product.csv
+- fact_actuals_monthly.csv
+- fact_budget_seed_2026.csv
+- fact_forecast_seed_2026.csv
+- scenario_drivers.csv
+- writeback_demo_long.csv
+- dataset_manifest.txt
+
+Opis ich roli:
+
+- wymiary służą do zbudowania modelu semantycznego,
+- fact_actuals_monthly.csv to historyczne actuals (podłączane do semantic modelu),
+- fact_budget_seed_2026.csv to punkt startowy do planu na 2026 — ładowany do Lakehouse i dołączany do semantic modelu jako osobna tabela faktów z miarami budżetowymi; w Planning sheet służy jako źródło dla data input columns (kopiowanie wartości z miary),
+- fact_forecast_seed_2026.csv to dane wsadowe dla forecastu — ładowane do Lakehouse i dołączane do semantic modelu; w Planning sheet używane jako źródło w Forecast > Period Setup > Copy Source,
+- scenario_drivers.csv to materiał referencyjny opisujący parametry scenariuszy (wzrost wolumenu, presja rabatowa itp.) — nie jest ładowany do Planning sheet; służy jako przewodnik do ręcznych korekt wartości w scenariuszach,
+- writeback_demo_long.csv to przykładowy docelowy układ tabeli writeback typu Long (do referencji).
+
+Skala danych w przygotowanym pakiecie:
+
+- dim_date_month.csv: 48 wierszy
+- dim_region.csv: 6 wierszy
+- dim_department.csv: 12 wierszy
+- dim_cost_center.csv: 720 wierszy
+- dim_product.csv: 176 wierszy
+- fact_actuals_monthly.csv: 3 041 280 wierszy
+- fact_budget_seed_2026.csv: 1 520 640 wierszy
+- fact_forecast_seed_2026.csv: 1 140 480 wierszy
+- scenario_drivers.csv: 1 728 wierszy
+- writeback_demo_long.csv: 6 912 wierszy
+
+
+6. MODEL BIZNESOWY DANYCH
+-------------------------
+Kluczowe wymiary:
+
+- Time: rok, kwartał, miesiąc
+- Region: North, South, East, West, Central, Online
+- Department: Sales, Marketing, Supply Chain, Finance, HR, Operations, E-Commerce, Store Ops, Category Mgmt, Procurement, Customer Care, IT
+- Cost Center: 720 centrów kosztowych
+- Product: 176 produktów w 8 kategoriach
+
+Najważniejsze miary:
+
+- units_sold
+- gross_revenue
+- discount_amount
+- net_revenue
+- cogs
+- marketing_spend
+- opex_allocated
+- gross_margin
+- gross_margin_pct
+
+To wystarczy, aby pokazać:
+
+- budget planning,
+- reforecast,
+- scenario analysis,
+- writeback,
+- Actual vs Budget vs Forecast.
+
+
+7. PROPOZYCJA DEMO - PRZEBIEG KROK PO KROKU
+-------------------------------------------
+
+ETAP 1. Przygotowanie danych w Fabric
+1. Utwórz workspace "Fabric Planning Demo".
+2. Utwórz Lakehouse "fpd-lakehouse".
+3. Załaduj wszystkie pliki CSV z katalogu datasets do Lakehouse (Upload > Files, potem Load to Table dla każdego pliku).
+4. Zweryfikuj, że tabele zostały poprawnie utworzone, w szczególności fact_actuals_monthly i fact_budget_seed_2026.
+
+Uwaga: SQL database na metadane planu NIE tworzysz teraz ręcznie — powstanie automatycznie przy tworzeniu Plan item w Etapie 4.
+
+Co mówisz podczas demo:
+"Zaczynamy od jednej, wspólnej platformy danych. Nie przechodzimy między osobnym warehouse, osobnym narzędziem planningowym i osobnym miejscem na raporty."
+
+
+ETAP 2. Model semantyczny
+1. Na bazie tabel w Lakehouse utwórz semantic model "fpd-semantic-model".
+2. Połącz fact_actuals_monthly z wymiarami:
+   - dim_date_month po month_key
+   - dim_region po region_id
+   - dim_department po department_id
+   - dim_cost_center po cost_center_id
+   - dim_product po product_id
+3. Dodaj tabelę fact_budget_seed_2026 do modelu i połącz ją z tymi samymi wymiarami.
+4. Dodaj tabelę fact_forecast_seed_2026 do modelu i połącz ją z tymi samymi wymiarami.
+5. Dodaj podstawowe miary DAX:
+   - Net Revenue = SUM(fact_actuals_monthly[net_revenue])
+   - Gross Margin = SUM(fact_actuals_monthly[gross_margin])
+   - Gross Margin % = DIVIDE([Gross Margin], [Net Revenue])
+   - Discount = SUM(fact_actuals_monthly[discount_amount])
+   - Units = SUM(fact_actuals_monthly[units_sold])
+6. Dodaj miary budżetowe:
+   - Budget Net Revenue = SUM(fact_budget_seed_2026[net_revenue])
+   - Budget Discount = SUM(fact_budget_seed_2026[discount_amount])
+   - Budget Marketing Spend = SUM(fact_budget_seed_2026[marketing_spend])
+   - Budget Gross Margin = SUM(fact_budget_seed_2026[gross_margin])
+7. Dodaj miary forecastowe:
+   - Forecast Net Revenue = SUM(fact_forecast_seed_2026[net_revenue])
+   - Forecast Gross Margin = SUM(fact_forecast_seed_2026[gross_margin])
+
+Te miary będą widoczne w Planning sheet po podłączeniu semantic modelu i posłużą jako baseline (seed) do budżetowania i forecastu.
+
+Co mówisz:
+"Planning w Fabric pracuje nad tym samym kontekstem biznesowym, który później wykorzystuje Power BI. Nie dublujemy definicji KPI."
+
+
+ETAP 3. Przygotowanie raportu Power BI
+1. Zbuduj raport "Executive Planning Overview".
+2. Dodaj:
+   - kartę Net Revenue,
+   - kartę Gross Margin %,
+   - wykres Actuals by Month,
+   - macierz Region x Category,
+   - waterfall dla wpływu rabatu i COGS na marżę.
+3. Zostaw miejsce na późniejsze porównanie Budget i Forecast.
+
+Cel tego kroku:
+- na początku pokazujesz stan historyczny,
+- po writeback wrócisz do tego raportu i pokażesz nowy plan.
+
+
+ETAP 4. Przygotowanie połączeń i utworzenie Plan item
+1. Wejdź do Settings > Manage connections and gateways > New > Cloud.
+2. Utwórz połączenie typu "Power BI Semantic Model":
+   - Connection name: np. fpd-semantic-connection
+   - Connection type: Power BI Semantic Model
+   - Authentication method: OAuth 2.0
+   - Zaloguj się kontem Microsoft.
+3. Utwórz połączenie typu "SQL database in Fabric" (dla writeback):
+   - Connection name: np. fpd-sql-connection
+   - Connection type: SQL database in Fabric
+   - Authentication method: OAuth 2.0
+   - Zaloguj się kontem Microsoft.
+4. (Opcjonalnie) Udostępnij połączenia innym użytkownikom: kliknij "..." > Manage users.
+5. Utwórz Plan item:
+   a. W workspace kliknij New item > Plan (preview).
+   b. Nazwij plan, np. "fpd-sales-and-margin-plan" i kliknij Create.
+   c. Przy tworzeniu Plan automatycznie powstanie Fabric SQL database do metadanych.
+
+Co mówisz:
+"Plan korzysta z dwóch kluczowych elementów: semantic modelu jako wspólnej warstwy biznesowej i bazy SQL w Fabric do metadanych oraz writeback."
+
+
+ETAP 5. Utworzenie Planning sheet i podłączenie do danych
+1. W Plan item wybierz Planning > podaj nazwę arkusza > Create.
+2. W nowym Planning sheet kliknij Add > Connect, aby podłączyć semantic model.
+3. Wybierz utworzone połączenie do semantic modelu i kliknij Add.
+4. Wybierz semantic model "fpd-semantic-model" i kliknij Add.
+5. W panelu Fields dodaj wymiary i miary z semantic modelu:
+   - Wymiary wierszowe: Region, Product Category
+   - Wymiary kolumnowe: Year, Quarter, Month
+   - Miary: Net Revenue, Gross Margin, Discount, Units
+   - Miary budżetowe: Budget Net Revenue, Budget Discount, Budget Marketing Spend
+
+Co pokazujesz:
+- że Planning sheet czyta dane wprost z semantic modelu,
+- że użytkownik biznesowy widzi znane hierarchie i KPI,
+- że nie trzeba budować osobnej wyspy danych.
+
+
+ETAP 6. Zbudowanie podstawowego planu budżetowego
+Planning sheet NIE ma funkcji "Import seed" ani bezpośredniego ładowania CSV.
+Dane budżetowe (seed) trafiają do Planning sheet przez semantic model.
+
+Krok po kroku:
+1. W Etapie 2 załadowałeś fact_budget_seed_2026 do semantic modelu
+   i dodałeś miary budżetowe (Budget Net Revenue, Budget Discount itd.).
+   Te miary są już widoczne w Planning sheet jako kolumny z danymi.
+2. Dodaj kolumny data input do ręcznych korekt budżetu:
+   a. Kliknij Planning > Insert Column > Number.
+   b. Tytuł: "Budget Net Revenue (Plan)".
+   c. Przy tworzeniu wybierz opcję "Copy from another series"
+      i wskaż miarę Budget Net Revenue z semantic modelu.
+      Spowoduje to skopiowanie wartości seed do edytowalnej kolumny.
+   d. Powtórz dla: Budget Discount (Plan), Budget Marketing Spend (Plan).
+3. Dodaj kolumnę typu Formula:
+   a. Planning > Insert Column > Formula.
+   b. Tytuł: "Budget Gross Margin".
+   c. Formuła: = [Budget Net Revenue (Plan)] - [Budget COGS]
+      (lub inna logika odpowiednia do modelu).
+4. Teraz użytkownicy mogą edytować wartości budżetowe
+   w kolumnach data input, a formuły automatycznie przeliczą marżę.
+
+Przekaz biznesowy:
+"To nie jest już tylko raport. To jest sterowalny plan z możliwością wprowadzania założeń. Dane startowe pochodzą z tego samego modelu, z którego korzystają raporty."
+
+
+ETAP 7. Forecast
+1. W Planning sheet przejdź do Model > Forecast.
+2. Podaj nazwę miary forecastowej: np. "Forecast Net Revenue".
+3. Wybierz Forecast Period (zakres czasowy forecastu).
+4. Skonfiguruj Closed Period (okresy zamknięte, z dostępnymi actuals):
+   - Źródło: Measure (wskaż miarę Net Revenue z semantic modelu)
+   - lub Formula (jeśli potrzebujesz obliczeń).
+5. Skonfiguruj Open Period (okresy otwarte, bez actuals):
+   - Źródło: Measure, Formula lub Data Input (ręczne wpisywanie).
+6. Kliknij Create, aby utworzyć miarę forecastową.
+7. W Period Setup podziel forecast na podokresy:
+   - Dodaj zakresy (ranges) w ramach Target Period.
+   - Dla każdego zakresu wybierz Copy Source, np. "Average of Period Range"
+     ze Source Periods ustawionym na Q1-Q2 2026.
+   - Średnia z historycznych wartości zainicjuje forecast na kolejne okresy.
+8. Powtórz dla kolejnych miar, jeśli potrzebujesz (np. Forecast Gross Margin).
+
+Scenariusz narracyjny:
+"Widzimy, że Q1 był słabszy przez większy rabat, ale e-commerce rośnie szybciej niż retail. Tworzymy rolling forecast na resztę roku."
+
+
+ETAP 8. Scenariusze (what-if)
+Scenariusze w Planning sheet tworzy się przez Model > Scenario.
+NIE ładuje się plików CSV — scenariusze powstają wewnątrz Planning sheet.
+Plik scenario_drivers.csv służy wyłącznie jako materiał referencyjny
+z opisem parametrów scenariuszy.
+
+1. Przejdź do Model > Scenario.
+2. Podaj nazwę scenariusza: "Base".
+3. Wybierz serię (miarę), która będzie symulowana, np. Budget Net Revenue (Plan).
+4. Kliknij Create.
+5. Dostosuj wartości w scenariuszu za pomocą slidera
+   (procentowe zwiększenie/zmniejszenie wartości w komórkach).
+   Dla "Base": zachowaj wartości zbliżone do seed.
+6. Kliknij Save, aby zapisać scenariusz.
+7. Kliknij "+" na dole strony, aby dodać kolejny scenariusz.
+8. Utwórz scenariusz "Margin Pressure":
+   - zwiększ Discount o 10-15% (slider w górę),
+   - zwiększ COGS o 5-10%.
+9. Utwórz scenariusz "Aggressive Growth":
+   - zwiększ Units o 15-20%,
+   - zwiększ Marketing Spend o 20%,
+   - zmniejsz Discount o 5%.
+10. Zapisz raport (Save).
+
+Co pokazujesz:
+- jak zmienia się revenue w każdym scenariuszu,
+- jak zmienia się margin,
+- które regiony i kategorie najbardziej reagują,
+- że porównanie scenariuszy jest natychmiastowe w jednym arkuszu.
+
+
+ETAP 9. Manual adjustments i collaboration
+1. Przejdź do wybranego regionu i kategorii w Planning sheet.
+2. Wstaw kolumnę typu Simulate (Planning > Insert Column > Simulate)
+   lub edytuj wartości bezpośrednio w istniejącej data input column.
+3. Podnieś rabat w wybranym scenariuszu, np. o 5%.
+4. Dodaj ręczną korektę dla marketing spend.
+5. Pokaż natychmiastowy wpływ na Gross Margin (kolumna Formula).
+6. Dodaj komentarz do zmiany: kliknij prawym na komórkę i dodaj notatkę/komentarz.
+   Możesz tagować użytkowników przez @mention.
+
+To jest bardzo ważny moment demo, bo tutaj widać różnicę między zwykłym dashboardem a prawdziwym planningiem.
+
+
+ETAP 10. Writeback
+1. W Planning sheet przejdź do Writeback > Add Destination.
+2. Wybierz połączenie do SQL database (utworzone w Etapie 4).
+3. Podaj:
+   - Database Name
+   - Table Name, np. wb_finance_plan
+   - Decimal Precision
+4. Kliknij Add.
+5. Ustaw typ writeback: Writeback > WB Type:
+   - Long — miary jako pary klucz-wartość (row-based),
+   - Wide — miary jako osobne kolumny (column-based),
+   - Long with Changes — jak Long, ale tylko zmienione wartości,
+   - Wide with Changes — jak Wide, ale tylko zmienione wartości.
+   Dla demo wybierz Long (elastyczny model).
+6. Skonfiguruj General Settings (Writeback > General Settings):
+   - General: ustawienia ogólne zapisu
+   - Data: wybierz miary i wymiary do zapisu
+   - Destinations: zweryfikuj destination
+   - Advanced: opcje zaawansowane
+7. Uruchom writeback: Writeback > Writeback.
+8. Po zakończeniu: Writeback > Logs — pokaż historię i status zapisu.
+
+Przekaz:
+"Plan nie zostaje w prywatnym arkuszu. Trafia do zarządzanej tabeli danych, z której natychmiast mogą korzystać raporty i dalsze procesy."
+
+
+ETAP 11. Wizualizacja wyników — Intelligence sheet i Power BI
+
+Opcja A: Intelligence sheet (w ramach Plan — zalecane do demo)
+1. W Plan item utwórz nowy Intelligence sheet.
+2. Dodaj Planning visual i wskaż swój Planning sheet jako źródło.
+3. Dane z Planning sheet (data input, forecasts, scenarios, formulas)
+   pojawią się w sekcji "From Sheets" w panelu Data.
+4. Dodaj wykresy (100+ typów, w tym waterfall, marimekko, sankey):
+   - Actual vs Budget
+   - Actual vs Forecast
+   - Scenario comparison (Base vs Margin Pressure vs Aggressive Growth)
+   - Region and category variance
+5. Zmiany w Planning sheet (symulacje, korekty) odświeżają wykresy w czasie rzeczywistym.
+
+Opcja B: Raport Power BI (po writeback)
+1. Wróć do raportu "Executive Planning Overview".
+2. Dodaj tabelę writeback do modelu danych raportu.
+3. Pokaż:
+   - Actual vs Budget
+   - Actual vs Forecast
+   - Scenario comparison
+   - Region and category variance
+4. Podkreśl, że dane planistyczne i historyczne są w jednym środowisku.
+
+Finał narracji:
+"Tu kończy się rozdział z rozproszonym planningiem. Mamy jedno miejsce do danych, planowania, writeback i raportowania."
+
+
+8. NAJLEPSZY UKŁAD PREZENTACJI
+------------------------------
+Najbardziej przekonująca kolejność ekranu:
+
+1. Raport historyczny (Power BI lub Intelligence sheet)
+2. Model semantyczny (z miarami actuals i budget seed)
+3. Planning sheet podłączony do semantic modelu
+4. Data input columns z skopiowanym seed
+5. Forecast (Model > Forecast)
+6. Scenario comparison (Model > Scenario)
+7. Manual adjustment (data input / simulate columns)
+8. Writeback
+9. Intelligence sheet z wizualizacją wyników w czasie rzeczywistym
+
+Dlaczego to działa:
+- najpierw pokazujesz znany świat analityki,
+- potem dokładane jest planowanie na tych samych danych,
+- na końcu pokazujesz, że zmiana wraca do platformy i jest natychmiast widoczna na wykresach.
+
+
+9. KLUCZOWE WIADOMOŚCI DLA ODBIORCY
+-----------------------------------
+Warto powtarzać te tezy:
+
+- "Planning i BI korzystają z jednego modelu biznesowego."
+- "Nie eksportujemy danych do osobnych narzędzi."
+- "Forecast i scenariusze są budowane nad tym samym kontekstem co raporty."
+- "Writeback pozwala zamknąć pętlę: analiza -> decyzja -> zapis -> raportowanie."
+- "To jest platformowe, a nie punktowe rozwiązanie."
+
+
+10. CO POKAZAĆ TECHNICZNIE, JEŚLI ODBIORCA JEST BARDZIEJ ARCHITEKTONICZNY
+-------------------------------------------------------------------------
+- OneLake / Lakehouse jako wspólna platforma danych
+- Semantic model jako wspólna warstwa znaczeniowa (actuals + budget seed + forecast seed)
+- Plan (preview) z czterema komponentami: Planning sheets, PowerTable, Intelligence sheets, InfoBridge
+- Planning sheet: data input, forecast, scenarios, formulas — wszystko na semantic modelu
+- Intelligence sheet: 100+ typów wykresów, real-time wizualizacja planów
+- Writeback do tabeli SQL jako trwały zapis procesu planistycznego
+- Power BI jako dodatkowa warstwa konsumpcji po writeback
+
+
+11. RYZYKA I JAK JE OBEJŚĆ
+-------------------------
+- Jeśli preview nie jest włączone w Twoim regionie, sprawdź Region availability for plan (preview) w dokumentacji MS.
+- Jeśli writeback nie jest jeszcze skonfigurowany, użyj pliku writeback_demo_long.csv do pokazania docelowego kształtu danych.
+- Jeśli chcesz skrócić demo, ogranicz detal do Region x Category x Month zamiast pełnej hierarchii.
+- Jeśli semantic model nie odświeżył się po załadowaniu danych, sprawdź ustawienia refreshu w Lakehouse.
+- Scenariusze tworzy się w UI Planning sheet (Model > Scenario), nie przez import CSV — upewnij się, że scenario_drivers.csv służy tylko jako karta referencyjna.
+
+
+12. REKOMENDOWANY MINIMALNY ZESTAW MIAR DO LIVE DEMO
+----------------------------------------------------
+- Net Revenue
+- Discount
+- COGS
+- Marketing Spend
+- Gross Margin
+- Gross Margin %
+- Units
+
+
+13. REZULTAT KOŃCOWY
+--------------------
+Po zakończeniu demo odbiorca powinien zobaczyć, że Microsoft Fabric Planning:
+
+- wspiera proces planowania i forecastingu w tym samym środowisku co analityka,
+- wykorzystuje istniejący semantic model,
+- pozwala na manual input i scenario modeling,
+- zapisuje wynik do kontrolowanego writeback,
+- skraca drogę od insight do decyzji i do nowego planu.
+
+
+14. PLIKI W TYM REPOZYTORIUM
+---------------------------
+- Dokument scenariusza: FabricPlanningDemoScenario.txt
+- Generator danych: scripts\\generate_fabric_planning_demo_data.py
+- Wygenerowane dane: katalog datasets
+
+
+15. PROPOZYCJA DALSZEGO ROZWINIĘCIA
+-----------------------------------
+Jeżeli chcesz, kolejnym krokiem mogę przygotować:
+
+- gotowy model tabel dla Warehouse / Lakehouse,
+- przykładowe miary DAX,
+- propozycję layoutu raportu Power BI,
+- skrypt SQL do tabeli writeback,
+- krótszą wersję "executive demo",
+- wersję pod konkretną branżę, np. finance, retail, manufacturing lub sales planning.

@@ -1,0 +1,13 @@
+department_id,department_name,department_multiplier
+D01,Sales,1.0
+D02,Marketing,1.08
+D03,Supply Chain,0.96
+D04,Finance,0.9
+D05,HR,0.87
+D06,Operations,0.98
+D07,E-Commerce,1.14
+D08,Store Ops,1.03
+D09,Category Mgmt,1.01
+D10,Procurement,0.94
+D11,Customer Care,0.92
+D12,IT,0.95

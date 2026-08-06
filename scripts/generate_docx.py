@@ -7,8 +7,9 @@ from docx.shared import Pt, Inches, RGBColor
 from docx.enum.text import WD_ALIGN_PARAGRAPH
 from docx.enum.style import WD_STYLE_TYPE
 
-SRC = Path(r"C:\repos\FabricPlanningDemo\FabricPlanningDemoScenario.txt")
-DST = Path(r"C:\repos\FabricPlanningDemo\FabricPlanningDemoScenario.docx")
+REPO_ROOT = Path(__file__).resolve().parent.parent
+SRC = REPO_ROOT / "FabricPlanningDemoScenario.txt"
+DST = REPO_ROOT / "FabricPlanningDemoScenario.docx"
 
 doc = Document()
 

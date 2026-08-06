@@ -1,9 +1,16 @@
 MICROSOFT FABRIC PLANNING - PEŁNA PROPOZYCJA DEMO
 =================================================
 
+Wersja dokumentu: 2.0
+Data weryfikacji z dokumentacją Microsoft Learn: 5 sierpnia 2026
+Produkt: Plan - element planistyczny w rodzinie Microsoft Fabric IQ
+
+Uwaga: dokumentacja produktu została przeniesiona z sekcji Power BI / Fabric preview do sekcji Fabric IQ (learn.microsoft.com/fabric/iq/plan/). Nazewnictwo i ścieżki UI w tym dokumencie odzwierciedlają stan na dzień weryfikacji.
+
+
 1. CEL DEMO
 -----------
-Pokazać, że Microsoft Fabric Planning pozwala przejść od analizy danych historycznych do planowania, forecastingu i zapisu planu (writeback) w jednym, spójnym środowisku:
+Pokazać, że planowanie w Microsoft Fabric pozwala przejść od analizy danych historycznych do planowania, forecastingu i zapisu planu (writeback) w jednym, spójnym środowisku:
 
 - dane historyczne i planistyczne są w tej samej platformie,
 - model semantyczny Power BI jest wspólną warstwą biznesową,
@@ -11,7 +18,7 @@ Pokazać, że Microsoft Fabric Planning pozwala przejść od analizy danych hist
 - plan i forecast mogą być zapisane do docelowej tabeli writeback,
 - dashboard Power BI może natychmiast pokazać odchylenia Actual vs Budget vs Forecast.
 
-Scenariusz opiera się na oficjalnych funkcjach Microsoft Fabric Plan (preview): Planning sheets, Intelligence sheets, InfoBridge, Forecast, Scenarios oraz Writeback.
+Scenariusz opiera się na oficjalnych funkcjach elementu Plan: Planning sheets, PowerTable, Intelligence sheets oraz Infobridge, a w ramach Planning sheet na funkcjach Forecast, Scenarios i Writeback.
 
 
 2. PROPOZYCJA HISTORII BIZNESOWEJ
@@ -42,7 +49,7 @@ Wartość demo:
 W demo pokazujesz siedem kluczowych etapów:
 
 1) Ingest danych historycznych i referencyjnych do Fabric (Lakehouse)
-2) Zbudowanie modelu semantycznego (z danymi actuals i budget seed)
+2) Zbudowanie modelu semantycznego (z danymi actuals, budget seed i forecast seed)
 3) Przygotowanie połączeń i utworzenie Plan item
 4) Utworzenie Planning sheet i podłączenie do semantic modelu
 5) Budżetowanie: data input columns zainicjowane z seed
@@ -57,10 +64,12 @@ W jednym workspace utwórz:
 - Lakehouse na dane demo (CSV → tabele)
 - Semantic model Power BI (na bazie Lakehouse)
 - Raport Power BI "Executive Planning Overview" (opcjonalnie, do porównania z Intelligence sheet)
-- Item "Plan (preview)" — przy tworzeniu Plan automatycznie powstanie Fabric SQL database do przechowywania metadanych planu
+- Element Plan — przy jego tworzeniu automatycznie powstanie Fabric SQL database do przechowywania metadanych planu
 - W ramach Plan: Planning sheet, Intelligence sheet
 
 Uwaga: SQL database na metadane planu tworzy się automatycznie przy tworzeniu Plan item. Nie musisz jej tworzyć ręcznie. Jeśli chcesz osobną bazę SQL na writeback, możesz ją utworzyć ręcznie.
+
+Uwaga: workspace musi być przypisany do pojemności Fabric (F SKU) lub Power BI Premium (P SKU). Licencje Power BI Pro i Premium Per User NIE wystarczają do uruchomienia Plan — szczegóły w rozdziale 12.
 
 Rekomendowane nazwy:
 
@@ -73,7 +82,11 @@ Rekomendowane nazwy:
 
 5. DATASETY DO DEMO
 -------------------
-W katalogu datasets znajdują się następujące pliki:
+Dane demo NIE są przechowywane w repozytorium (katalog datasets jest wpisany do .gitignore ze względu na rozmiar — pełny pakiet to ponad 5,7 miliona wierszy). Wygeneruj je lokalnie przed demo:
+
+   python scripts\generate_fabric_planning_demo_data.py
+
+Generator jest deterministyczny (random_seed = 42), więc każde uruchomienie daje identyczne dane. Generowanie trwa kilka minut. Wynikiem jest katalog datasets z następującymi plikami:
 
 - dim_date_month.csv
 - dim_region.csv
@@ -90,34 +103,36 @@ W katalogu datasets znajdują się następujące pliki:
 Opis ich roli:
 
 - wymiary służą do zbudowania modelu semantycznego,
-- fact_actuals_monthly.csv to historyczne actuals (podłączane do semantic modelu),
-- fact_budget_seed_2026.csv to punkt startowy do planu na 2026 — ładowany do Lakehouse i dołączany do semantic modelu jako osobna tabela faktów z miarami budżetowymi; w Planning sheet służy jako źródło dla data input columns (kopiowanie wartości z miary),
-- fact_forecast_seed_2026.csv to dane wsadowe dla forecastu — ładowane do Lakehouse i dołączane do semantic modelu; w Planning sheet używane jako źródło w Forecast > Period Setup > Copy Source,
+- fact_actuals_monthly.csv to historyczne actuals za lata 2024-2025 (podłączane do semantic modelu),
+- fact_budget_seed_2026.csv to punkt startowy do planu na cały rok 2026 — ładowany do Lakehouse i dołączany do semantic modelu jako osobna tabela faktów z miarami budżetowymi; w Planning sheet służy jako źródło dla data input columns (kopiowanie wartości z miary),
+- fact_forecast_seed_2026.csv to dane wsadowe dla forecastu obejmujące kwiecień-grudzień 2026 — ładowane do Lakehouse i dołączane do semantic modelu; w Planning sheet używane jako źródło w Forecast > Period Setup > Copy Source,
 - scenario_drivers.csv to materiał referencyjny opisujący parametry scenariuszy (wzrost wolumenu, presja rabatowa itp.) — nie jest ładowany do Planning sheet; służy jako przewodnik do ręcznych korekt wartości w scenariuszach,
 - writeback_demo_long.csv to przykładowy docelowy układ tabeli writeback typu Long (do referencji).
 
-Skala danych w przygotowanym pakiecie:
+Skala danych w przygotowanym pakiecie (wartości potwierdzone uruchomieniem generatora):
 
-- dim_date_month.csv: 48 wierszy
+- dim_date_month.csv: 48 wierszy (styczeń 2024 - grudzień 2027)
 - dim_region.csv: 6 wierszy
 - dim_department.csv: 12 wierszy
 - dim_cost_center.csv: 720 wierszy
 - dim_product.csv: 176 wierszy
-- fact_actuals_monthly.csv: 3 041 280 wierszy
-- fact_budget_seed_2026.csv: 1 520 640 wierszy
-- fact_forecast_seed_2026.csv: 1 140 480 wierszy
-- scenario_drivers.csv: 1 728 wierszy
-- writeback_demo_long.csv: 6 912 wierszy
+- fact_actuals_monthly.csv: 3 041 280 wierszy (24 miesiące x 720 cost centers x 176 produktów)
+- fact_budget_seed_2026.csv: 1 520 640 wierszy (12 miesięcy x 720 x 176)
+- fact_forecast_seed_2026.csv: 1 140 480 wierszy (9 miesięcy x 720 x 176)
+- scenario_drivers.csv: 1 728 wierszy (3 scenariusze x 12 miesięcy x 6 regionów x 8 kategorii)
+- writeback_demo_long.csv: 6 912 wierszy (3 scenariusze x 4 miary x 12 x 6 x 8)
+
+Uwaga dotycząca granulacji: dane faktów mają granulację produkt x cost center x miesiąc. W Planning sheet pracuj na poziomie zagregowanym (Region x Kategoria x Miesiąc, czyli 6 x 8 x 12 = 576 komórek na miarę). Powód jest praktyczny: Infobridge ma limit 1,2 mln komórek na zapytanie, a writeback 1,2 mln komórek na operację (rozdział 13). Pełna granulacja przekroczyłaby te limity.
 
 
 6. MODEL BIZNESOWY DANYCH
 -------------------------
 Kluczowe wymiary:
 
-- Time: rok, kwartał, miesiąc
-- Region: North, South, East, West, Central, Online
+- Time: rok, kwartał, miesiąc (2024-2027, w tym współczynnik sezonowości na każdy miesiąc)
+- Region: North, South, East, West, Central (kanał Retail), Online (kanał E-Commerce)
 - Department: Sales, Marketing, Supply Chain, Finance, HR, Operations, E-Commerce, Store Ops, Category Mgmt, Procurement, Customer Care, IT
-- Cost Center: 720 centrów kosztowych
+- Cost Center: 720 centrów kosztowych (z liczbą etatów i współczynnikiem skali)
 - Product: 176 produktów w 8 kategoriach
 
 Najważniejsze miary:
@@ -140,15 +155,139 @@ To wystarczy, aby pokazać:
 - writeback,
 - Actual vs Budget vs Forecast.
 
+Parametry wbudowane w dane (istotne dla narracji demo — to nie są przypadkowe liczby, tylko celowo zaprojektowane wzorce):
 
-7. PROPOZYCJA DEMO - PRZEBIEG KROK PO KROKU
--------------------------------------------
+- Sezonowość miesięczna: styczeń 0,91; luty 0,93; marzec 0,97; kwiecień 0,99; maj 1,01; czerwiec 1,03; lipiec 1,02; sierpień 1,00; wrzesień 0,98; październik 1,05; listopad 1,12; grudzień 1,25.
+- Wzrost wolumenu rok do roku: +4,5%.
+- Inflacja cenowa: +2,5% rocznie.
+- Kanał E-Commerce (region Online): mnożnik regionu 1,16 oraz dodatkowy mnożnik kanału 1,10 — łącznie około 1,28x wobec bazy.
+- Rabat bazowy: 4,5% w kanale Retail, 6,2% w kanale E-Commerce; w listopadzie i grudniu rabat rośnie o 1,8 punktu procentowego.
+- Marketing: 1,8% przychodu netto w Retail, 3,2% w E-Commerce.
+- Opex alokowany: liczba etatów x 125 x mnożnik działu.
+- Udział COGS w przychodzie netto różni się między kategoriami: Baby Care 0,56; Snacks 0,57; Pet Care 0,58; Personal Care 0,59; Beverages 0,61; Household 0,65; Frozen 0,70; Dairy 0,73.
+- Ceny bazowe kategorii: Snacks 9,5; Dairy 11,0; Beverages 13,0; Frozen 14,5; Household 18,0; Personal Care 22,0; Pet Care 24,0; Baby Care 27,0.
+
+Parametry wbudowane w budżet 2026 (fact_budget_seed_2026):
+
+- wzrost wolumenu: +3% w Retail, +6% w E-Commerce,
+- wzrost ceny: +5,5%,
+- rabat bazowy: 5,0% (+1,5 punktu procentowego w listopadzie i grudniu),
+- marketing: 2,2% w Retail, 3,6% w E-Commerce,
+- opex: liczba etatów x 133 (czyli o 6,4% więcej niż w actuals).
+
+Parametry wbudowane w forecast (fact_forecast_seed_2026, kwiecień-grudzień 2026):
+
+- wzrost wolumenu wobec bazy: +4% w Retail, +9% w E-Commerce.
+
+Parametry scenariuszy (scenario_drivers.csv, wartości bazowe przed losowym rozrzutem):
+
+- Base: wolumen +3,0%, cena +2,0%, COGS +1,0%, rabat 0,0%, marketing 0,0%
+- Margin Pressure: wolumen +1,0%, cena +1,0%, COGS +4,0%, rabat +2,0%, marketing +1,0%
+- Aggressive Growth: wolumen +7,0%, cena +1,5%, COGS +1,5%, rabat +2,5%, marketing +3,5%
+
+
+7. SCENARIUSZE BIZNESOWE - CO MOŻNA POKAZAĆ NA TYCH DANYCH
+----------------------------------------------------------
+Ten rozdział opisuje, jakie realne rozmowy biznesowe da się przeprowadzić na przygotowanym zestawie danych. Każdy scenariusz jest osadzony w konkretnych wzorcach wbudowanych w dane, więc liczby na ekranie potwierdzą narrację, a nie jej zaprzeczą. Wybierz dwa lub trzy scenariusze pasujące do odbiorcy — nie próbuj pokazać wszystkich.
+
+SCENARIUSZ A. Planowanie szczytu sezonowego (dla dyrektora sprzedaży i supply chain)
+
+Pytanie biznesowe: ile zapasu i ile budżetu promocyjnego przygotować na czwarty kwartał?
+
+Co widać w danych: grudzień ma współczynnik sezonowości 1,25, listopad 1,12, a luty 0,93. Oznacza to, że grudzień jest o około 34% silniejszy od lutego przy tych samych pozostałych czynnikach. Cztery miesiące (październik-grudzień) odpowiadają za wyraźnie ponadproporcjonalną część roku.
+
+Jak to pokazać: w Planning sheet ustaw wiersze na Region, kolumny na Miesiąc, miarę Net Revenue. Wykres w Intelligence sheet natychmiast pokaże krzywą sezonową. Następnie w kolumnie data input podnieś plan wolumenu na listopad i grudzień i pokaż, jak zmienia się cały rok.
+
+Puenta dla klienta: sezonowość jest w danych, a nie w głowie planisty. Plan buduje się na wzorcu wyliczonym z historii, a korekta ekspercka jest widoczna, opisana i audytowalna.
+
+SCENARIUSZ B. Rentowność wzrostu w e-commerce (dla CFO i dyrektora e-commerce)
+
+Pytanie biznesowe: kanał online rośnie najszybciej, ale czy rośnie rentownie?
+
+Co widać w danych: region Online ma mnożnik 1,16 i dodatkowy mnożnik kanału 1,10, czyli sprzedaje około 28% więcej wolumenu niż baza. Jednocześnie ma wyższy rabat bazowy (6,2% wobec 4,5% w Retail) oraz prawie dwukrotnie wyższy udział marketingu w przychodzie netto (3,2% wobec 1,8%). To klasyczne napięcie: wzrost kupiony rabatem i budżetem marketingowym.
+
+Jak to pokazać: zestaw Net Revenue i Gross Margin % w podziale na kanał. Pokaż, że udział przychodu rośnie szybciej niż udział marży. Następnie w scenariuszu zmniejsz rabat online o 1 punkt procentowy i pokaż wpływ na marżę oraz na wolumen.
+
+Puenta dla klienta: dyskusja o kanale przestaje być sporem o narrację, bo obie strony patrzą na tę samą miarę marży w tym samym arkuszu.
+
+SCENARIUSZ C. Koszt sezonu promocyjnego (dla kontrolingu i dyrektora handlowego)
+
+Pytanie biznesowe: ile realnie kosztuje nas listopadowo-grudniowa akcja rabatowa?
+
+Co widać w danych: w listopadzie i grudniu rabat rośnie o 1,8 punktu procentowego wobec poziomu bazowego. To ta sama część roku, w której wolumen jest najwyższy, więc efekt kwotowy jest zwielokrotniony.
+
+Jak to pokazać: wykres waterfall w Intelligence sheet od Gross Revenue przez Discount i COGS do Gross Margin, z filtrem na listopad i grudzień. Porównaj ten sam waterfall dla maja i czerwca. Następnie w scenariuszu Margin Pressure (rabat +2,0%) pokaż, jak wygląda rok, w którym presja rabatowa utrwala się na stałe.
+
+Puenta dla klienta: efekt promocji jest policzony na marży, a nie tylko na obrocie.
+
+SCENARIUSZ D. Miks kategorii jako dźwignia marży (dla category managementu)
+
+Pytanie biznesowe: która kategoria najbardziej poprawi marżę, jeśli przesuniemy do niej wolumen?
+
+Co widać w danych: udział COGS waha się od 0,56 w Baby Care do 0,73 w Dairy. Przy tej samej złotówce przychodu netto Baby Care zostawia około 17 punktów procentowych marży brutto więcej niż Dairy. Dodatkowo Baby Care ma najwyższą cenę bazową (27,0), a Snacks najniższą (9,5), więc kategorie różnią się też wartością koszyka.
+
+Jak to pokazać: macierz Kategoria x Region z miarą Gross Margin %. Pokaż rozrzut. Następnie w Planning sheet zwiększ plan wolumenu w dwóch kategoriach o najniższym COGS i pokaż wpływ na marżę całej firmy przy praktycznie niezmienionym przychodzie.
+
+Puenta dla klienta: planowanie miksu jest dźwignią marży porównywalną z negocjacjami cenowymi, ale wymaga wspólnego modelu danych, żeby w ogóle je zobaczyć.
+
+SCENARIUSZ E. Budżet oddolny na 720 centrach kosztowych (dla kontrolingu)
+
+Pytanie biznesowe: jak zebrać budżet z kilkuset ośrodków odpowiedzialności bez rozsyłania arkuszy?
+
+Co widać w danych: 720 centrów kosztowych rozpisanych na 6 regionów i 12 działów, każde z liczbą etatów i mnożnikiem działu. Opex jest alokowany jako liczba etatów x 125 x mnożnik działu w actuals i x 133 w budżecie 2026, co odpowiada wzrostowi kosztu osobowego o 6,4%.
+
+Jak to pokazać: pokaż seed budżetu skopiowany z miary do edytowalnej kolumny data input, a następnie edycję na poziomie jednego regionu lub działu. Podkreśl, że wszyscy pracują na jednej wersji planu, a zmiany są komentowane i przypisane do osoby.
+
+Puenta dla klienta: to jest zamiennik dla dziesiątek plików Excel krążących mailem, a nie kolejny raport.
+
+SCENARIUSZ F. Rolling forecast w połowie roku (dla CFO)
+
+Pytanie biznesowe: budżet przyjęliśmy w grudniu, minął kwartał — jaka jest aktualna prognoza na resztę roku?
+
+Co widać w danych: actuals kończą się w grudniu 2025, budżet obejmuje cały rok 2026, a seed forecastu celowo obejmuje wyłącznie kwiecień-grudzień 2026. To odwzorowuje sytuację reforecastu po zamknięciu pierwszego kwartału: część roku jest już przesądzona, reszta podlega ponownej prognozie.
+
+Jak to pokazać: skonfiguruj miarę forecastową z okresem zamkniętym opartym na actuals i okresem otwartym na kwiecień-grudzień 2026, a w Period Setup zainicjuj wartości średnią z ostatnich zamkniętych okresów. Szczegóły konfiguracji w ETAPIE 7.
+
+Puenta dla klienta: forecast nie jest osobnym plikiem tworzonym raz na kwartał, tylko funkcją tego samego modelu, którą można uruchomić w dowolnym momencie.
+
+SCENARIUSZ G. Trzy scenariusze na jednym ekranie (dla zarządu)
+
+Pytanie biznesowe: co się stanie z wynikiem, jeśli otoczenie okaże się gorsze lub lepsze od założeń?
+
+Co widać w danych: plik scenario_drivers.csv opisuje trzy spójne warianty. Base zakłada wolumen +3,0% i cenę +2,0%. Margin Pressure zakłada wzrost COGS o 4,0% i rabatu o 2,0% przy wolumenie tylko +1,0% — to wariant, w którym inflacja kosztowa zjada marżę. Aggressive Growth zakłada wolumen +7,0% i marketing +3,5%, ale kupuje ten wzrost rabatem +2,5%.
+
+Jak to pokazać: utwórz trzy scenariusze w Planning sheet i zestaw je na jednym wykresie w Intelligence sheet. Pokaż, że Aggressive Growth wygrywa przychodem, ale niekoniecznie marżą.
+
+Puenta dla klienta: rozmowa o ryzyku przestaje być dyskusją o przeczuciach, bo każdy wariant ma jawnie zapisane założenia.
+
+SCENARIUSZ H. Zamknięcie pętli: od decyzji do raportu (dla całej sali)
+
+Pytanie biznesowe: co się dzieje z planem po tym, jak zarząd go zatwierdzi?
+
+Co widać w danych: plik writeback_demo_long.csv pokazuje docelowy kształt tabeli writeback — 6 912 wierszy w układzie długim, z kolumnami scenario_name, month_key, region, category, measure_name, value oraz changed_by.
+
+Jak to pokazać: uruchom writeback do tabeli SQL, otwórz logi writeback, a następnie wróć do raportu Power BI i pokaż nowy plan obok actuals.
+
+Puenta dla klienta: plan trafia do zarządzanej tabeli w platformie, a nie do prywatnego pliku. Od tego momentu jest źródłem dla raportów, rozliczeń i dalszych procesów.
+
+MAPA SCENARIUSZY NA ODBIORCĘ
+
+- CFO i kontroling: F (rolling forecast), E (budżet oddolny), C (koszt promocji)
+- Dyrektor sprzedaży i handlowiec: A (sezonowość), B (e-commerce), G (scenariusze)
+- Category management: D (miks kategorii), C (rabaty)
+- Zarząd: G (scenariusze), H (zamknięcie pętli)
+- Architekt i IT: rozdziały 11-15
+
+
+8. PROPOZYCJA DEMO - PRZEBIEG KROK PO KROKU
+--------------------------------------------
 
 ETAP 1. Przygotowanie danych w Fabric
-1. Utwórz workspace "Fabric Planning Demo".
-2. Utwórz Lakehouse "fpd-lakehouse".
-3. Załaduj wszystkie pliki CSV z katalogu datasets do Lakehouse (Upload > Files, potem Load to Table dla każdego pliku).
-4. Zweryfikuj, że tabele zostały poprawnie utworzone, w szczególności fact_actuals_monthly i fact_budget_seed_2026.
+1. Wygeneruj dane poleceniem: python scripts\generate_fabric_planning_demo_data.py
+2. Utwórz workspace "Fabric Planning Demo" i przypisz go do pojemności Fabric (F SKU).
+3. Utwórz Lakehouse "fpd-lakehouse".
+4. Załaduj wszystkie pliki CSV z katalogu datasets do Lakehouse (Upload > Files, potem Load to Table dla każdego pliku).
+5. Zweryfikuj, że tabele zostały poprawnie utworzone, w szczególności fact_actuals_monthly i fact_budget_seed_2026.
 
 Uwaga: SQL database na metadane planu NIE tworzysz teraz ręcznie — powstanie automatycznie przy tworzeniu Plan item w Etapie 4.
 
@@ -173,15 +312,17 @@ ETAP 2. Model semantyczny
    - Discount = SUM(fact_actuals_monthly[discount_amount])
    - Units = SUM(fact_actuals_monthly[units_sold])
 6. Dodaj miary budżetowe:
-   - Budget Net Revenue = SUM(fact_budget_seed_2026[net_revenue])
-   - Budget Discount = SUM(fact_budget_seed_2026[discount_amount])
-   - Budget Marketing Spend = SUM(fact_budget_seed_2026[marketing_spend])
-   - Budget Gross Margin = SUM(fact_budget_seed_2026[gross_margin])
+   - Budget Net Revenue = SUM(fact_budget_seed_2026[budget_net_revenue])
+   - Budget Discount = SUM(fact_budget_seed_2026[budget_discount_amount])
+   - Budget Marketing Spend = SUM(fact_budget_seed_2026[budget_marketing_spend])
+   - Budget Gross Margin = SUM(fact_budget_seed_2026[budget_gross_margin])
 7. Dodaj miary forecastowe:
-   - Forecast Net Revenue = SUM(fact_forecast_seed_2026[net_revenue])
-   - Forecast Gross Margin = SUM(fact_forecast_seed_2026[gross_margin])
+   - Forecast Net Revenue = SUM(fact_forecast_seed_2026[forecast_net_revenue])
+   - Forecast Gross Margin = SUM(fact_forecast_seed_2026[forecast_gross_margin])
 
 Te miary będą widoczne w Planning sheet po podłączeniu semantic modelu i posłużą jako baseline (seed) do budżetowania i forecastu.
+
+Uwaga: model zbudowany bezpośrednio na Lakehouse działa domyślnie w trybie Direct Lake. Planning sheet obsługuje Direct Lake z ograniczeniami — połączenie musi używać stałych poświadczeń (fixed credentials), logowanie jednokrotne SSO nie jest obecnie wspierane. Konfigurację takiego połączenia opisuje ETAP 4. Jeśli chcesz uniknąć tego kroku w demo, zbuduj model w trybie Import.
 
 Co mówisz:
 "Planning w Fabric pracuje nad tym samym kontekstem biznesowym, który później wykorzystuje Power BI. Nie dublujemy definicji KPI."
@@ -207,18 +348,25 @@ ETAP 4. Przygotowanie połączeń i utworzenie Plan item
 2. Utwórz połączenie typu "Power BI Semantic Model":
    - Connection name: np. fpd-semantic-connection
    - Connection type: Power BI Semantic Model
-   - Authentication method: OAuth 2.0
+   - Authentication method: OAuth 2.0 (lub Service principal, jeśli planujesz CI/CD)
    - Zaloguj się kontem Microsoft.
-3. Utwórz połączenie typu "SQL database in Fabric" (dla writeback):
+3. Jeśli model działa w trybie Direct Lake, ustaw dedykowane połączenie na samym modelu:
+   a. Obok nazwy semantic modelu wybierz "..." > Settings > Gateway and cloud connections.
+   b. Domyślnie ustawione jest SSO — wybierz "Create a connection".
+   c. Podaj nazwę i metodę uwierzytelniania (OAuth 2.0 lub Service principal), a następnie Create.
+   d. Wybierz nowo utworzone połączenie z listy i kliknij Apply.
+4. Utwórz połączenie typu "SQL database in Fabric" (dla writeback):
    - Connection name: np. fpd-sql-connection
    - Connection type: SQL database in Fabric
    - Authentication method: OAuth 2.0
    - Zaloguj się kontem Microsoft.
-4. (Opcjonalnie) Udostępnij połączenia innym użytkownikom: kliknij "..." > Manage users.
-5. Utwórz Plan item:
-   a. W workspace kliknij New item > Plan (preview).
+5. (Opcjonalnie) Udostępnij połączenia innym użytkownikom: kliknij "..." > Manage users. Dostęp można nadać jako User, User with resharing lub Owner.
+6. Utwórz Plan item:
+   a. W workspace kliknij New item i wybierz element Plan.
    b. Nazwij plan, np. "fpd-sales-and-margin-plan" i kliknij Create.
    c. Przy tworzeniu Plan automatycznie powstanie Fabric SQL database do metadanych.
+
+Uwaga: połączenie do semantic modelu musi utworzyć użytkownik mający w workspace rolę Member lub Admin. Rola Contributor nie wystarczy do utworzenia i udostępnienia współdzielonego połączenia chmurowego.
 
 Co mówisz:
 "Plan korzysta z dwóch kluczowych elementów: semantic modelu jako wspólnej warstwy biznesowej i bazy SQL w Fabric do metadanych oraz writeback."
@@ -234,6 +382,8 @@ ETAP 5. Utworzenie Planning sheet i podłączenie do danych
    - Wymiary kolumnowe: Year, Quarter, Month
    - Miary: Net Revenue, Gross Margin, Discount, Units
    - Miary budżetowe: Budget Net Revenue, Budget Discount, Budget Marketing Spend
+
+Uwaga: trzymaj się granulacji Region x Kategoria x Miesiąc. Zejście do poziomu produktu lub centrum kosztowego wygeneruje zapytanie przekraczające limit 1,2 mln komórek na zapytanie Infobridge.
 
 Co pokazujesz:
 - że Planning sheet czyta dane wprost z semantic modelu,
@@ -264,29 +414,35 @@ Krok po kroku:
 4. Teraz użytkownicy mogą edytować wartości budżetowe
    w kolumnach data input, a formuły automatycznie przeliczą marżę.
 
+Uwaga: masowe wprowadzanie danych (bulk data input) obsługuje maksymalnie 1 mln wierszy w jednej operacji.
+
 Przekaz biznesowy:
 "To nie jest już tylko raport. To jest sterowalny plan z możliwością wprowadzania założeń. Dane startowe pochodzą z tego samego modelu, z którego korzystają raporty."
 
 
 ETAP 7. Forecast
 1. W Planning sheet przejdź do Model > Forecast.
-2. Podaj nazwę miary forecastowej: np. "Forecast Net Revenue".
-3. Wybierz Forecast Period (zakres czasowy forecastu).
+2. Podaj nazwę miary forecastowej: np. "Forecast Net Revenue 2026".
+3. Wybierz Forecast Period: styczeń 2026 - grudzień 2026.
 4. Skonfiguruj Closed Period (okresy zamknięte, z dostępnymi actuals):
    - Źródło: Measure (wskaż miarę Net Revenue z semantic modelu)
-   - lub Formula (jeśli potrzebujesz obliczeń).
+   - Zakres actuals w danych demo to styczeń 2024 - grudzień 2025.
 5. Skonfiguruj Open Period (okresy otwarte, bez actuals):
+   - Cały rok 2026 jest okresem otwartym, ponieważ dane actuals kończą się w grudniu 2025.
    - Źródło: Measure, Formula lub Data Input (ręczne wpisywanie).
 6. Kliknij Create, aby utworzyć miarę forecastową.
 7. W Period Setup podziel forecast na podokresy:
-   - Dodaj zakresy (ranges) w ramach Target Period.
-   - Dla każdego zakresu wybierz Copy Source, np. "Average of Period Range"
-     ze Source Periods ustawionym na Q1-Q2 2026.
-   - Średnia z historycznych wartości zainicjuje forecast na kolejne okresy.
+   - Zakres pierwszy: styczeń-marzec 2026. Copy Source: "Average of Period Range",
+     Source Periods: trzeci i czwarty kwartał 2025. To są ostatnie dostępne okresy
+     zamknięte, więc średnia z nich jest poprawnym punktem startowym.
+   - Zakres drugi: kwiecień-grudzień 2026. Copy Source: miara Forecast Net Revenue
+     z semantic modelu (tabela fact_forecast_seed_2026 obejmuje dokładnie ten zakres).
 8. Powtórz dla kolejnych miar, jeśli potrzebujesz (np. Forecast Gross Margin).
 
+Uwaga: nie ustawiaj Source Periods na okresy roku 2026. W danych demo nie ma żadnych actuals po grudniu 2025, więc średnia z takiego zakresu byłaby pusta.
+
 Scenariusz narracyjny:
-"Widzimy, że Q1 był słabszy przez większy rabat, ale e-commerce rośnie szybciej niż retail. Tworzymy rolling forecast na resztę roku."
+"Rok 2025 jest zamknięty, więc pierwszy kwartał 2026 inicjujemy średnią z ostatnich dwóch kwartałów. Od kwietnia wchodzi prognoza operacyjna. E-commerce rośnie szybciej niż retail, więc rolling forecast na resztę roku wygląda inaczej niż budżet przyjęty w grudniu."
 
 
 ETAP 8. Scenariusze (what-if)
@@ -301,22 +457,26 @@ z opisem parametrów scenariuszy.
 4. Kliknij Create.
 5. Dostosuj wartości w scenariuszu za pomocą slidera
    (procentowe zwiększenie/zmniejszenie wartości w komórkach).
-   Dla "Base": zachowaj wartości zbliżone do seed.
+   Dla "Base": wolumen +3%, cena +2%, COGS +1% — zgodnie z scenario_drivers.csv.
 6. Kliknij Save, aby zapisać scenariusz.
 7. Kliknij "+" na dole strony, aby dodać kolejny scenariusz.
-8. Utwórz scenariusz "Margin Pressure":
-   - zwiększ Discount o 10-15% (slider w górę),
-   - zwiększ COGS o 5-10%.
-9. Utwórz scenariusz "Aggressive Growth":
-   - zwiększ Units o 15-20%,
-   - zwiększ Marketing Spend o 20%,
-   - zmniejsz Discount o 5%.
+8. Utwórz scenariusz "Margin Pressure" zgodnie z driverami:
+   - COGS +4%,
+   - rabat +2%,
+   - wolumen tylko +1%.
+9. Utwórz scenariusz "Aggressive Growth" zgodnie z driverami:
+   - wolumen +7%,
+   - marketing +3,5%,
+   - rabat +2,5%.
 10. Zapisz raport (Save).
+
+Uwaga: jeden element Plan może zawierać maksymalnie 25 arkuszy. Trzy scenariusze plus arkusz planistyczny i arkusz Intelligence mieszczą się w limicie z dużym zapasem.
 
 Co pokazujesz:
 - jak zmienia się revenue w każdym scenariuszu,
 - jak zmienia się margin,
 - które regiony i kategorie najbardziej reagują,
+- że Aggressive Growth wygrywa przychodem, ale kupuje go rabatem i marketingiem,
 - że porównanie scenariuszy jest natychmiastowe w jednym arkuszu.
 
 
@@ -346,7 +506,7 @@ ETAP 10. Writeback
    - Wide — miary jako osobne kolumny (column-based),
    - Long with Changes — jak Long, ale tylko zmienione wartości,
    - Wide with Changes — jak Wide, ale tylko zmienione wartości.
-   Dla demo wybierz Long (elastyczny model).
+   Dla demo wybierz Long (elastyczny model, zgodny z writeback_demo_long.csv).
 6. Skonfiguruj General Settings (Writeback > General Settings):
    - General: ustawienia ogólne zapisu
    - Data: wybierz miary i wymiary do zapisu
@@ -354,6 +514,8 @@ ETAP 10. Writeback
    - Advanced: opcje zaawansowane
 7. Uruchom writeback: Writeback > Writeback.
 8. Po zakończeniu: Writeback > Logs — pokaż historię i status zapisu.
+
+Uwaga: pojedyncza operacja writeback obsługuje maksymalnie 1,2 mln komórek. Przy granulacji Region x Kategoria x Miesiąc dla trzech scenariuszy i czterech miar zapisujesz 6 912 wartości, czyli mieścisz się z bardzo dużym zapasem.
 
 Przekaz:
 "Plan nie zostaje w prywatnym arkuszu. Trafia do zarządzanej tabeli danych, z której natychmiast mogą korzystać raporty i dalsze procesy."
@@ -366,12 +528,14 @@ Opcja A: Intelligence sheet (w ramach Plan — zalecane do demo)
 2. Dodaj Planning visual i wskaż swój Planning sheet jako źródło.
 3. Dane z Planning sheet (data input, forecasts, scenarios, formulas)
    pojawią się w sekcji "From Sheets" w panelu Data.
-4. Dodaj wykresy (100+ typów, w tym waterfall, marimekko, sankey):
+4. Dodaj wykresy (m.in. waterfall, marimekko, sankey):
    - Actual vs Budget
    - Actual vs Forecast
    - Scenario comparison (Base vs Margin Pressure vs Aggressive Growth)
    - Region and category variance
 5. Zmiany w Planning sheet (symulacje, korekty) odświeżają wykresy w czasie rzeczywistym.
+
+Uwaga: jeden element Plan obsługuje maksymalnie 50 wizualizacji.
 
 Opcja B: Raport Power BI (po writeback)
 1. Wróć do raportu "Executive Planning Overview".
@@ -387,7 +551,7 @@ Finał narracji:
 "Tu kończy się rozdział z rozproszonym planningiem. Mamy jedno miejsce do danych, planowania, writeback i raportowania."
 
 
-8. NAJLEPSZY UKŁAD PREZENTACJI
+9. NAJLEPSZY UKŁAD PREZENTACJI
 ------------------------------
 Najbardziej przekonująca kolejność ekranu:
 
@@ -407,8 +571,8 @@ Dlaczego to działa:
 - na końcu pokazujesz, że zmiana wraca do platformy i jest natychmiast widoczna na wykresach.
 
 
-9. KLUCZOWE WIADOMOŚCI DLA ODBIORCY
------------------------------------
+10. KLUCZOWE WIADOMOŚCI DLA ODBIORCY
+------------------------------------
 Warto powtarzać te tezy:
 
 - "Planning i BI korzystają z jednego modelu biznesowego."
@@ -418,27 +582,126 @@ Warto powtarzać te tezy:
 - "To jest platformowe, a nie punktowe rozwiązanie."
 
 
-10. CO POKAZAĆ TECHNICZNIE, JEŚLI ODBIORCA JEST BARDZIEJ ARCHITEKTONICZNY
+11. CO POKAZAĆ TECHNICZNIE, JEŚLI ODBIORCA JEST BARDZIEJ ARCHITEKTONICZNY
 -------------------------------------------------------------------------
 - OneLake / Lakehouse jako wspólna platforma danych
 - Semantic model jako wspólna warstwa znaczeniowa (actuals + budget seed + forecast seed)
-- Plan (preview) z czterema komponentami: Planning sheets, PowerTable, Intelligence sheets, InfoBridge
+- Element Plan z czterema komponentami: Planning sheets, PowerTable, Intelligence sheets i Infobridge
 - Planning sheet: data input, forecast, scenarios, formulas — wszystko na semantic modelu
-- Intelligence sheet: 100+ typów wykresów, real-time wizualizacja planów
+- Intelligence sheet: bogaty zestaw typów wykresów, wizualizacja planów w czasie rzeczywistym
 - Writeback do tabeli SQL jako trwały zapis procesu planistycznego
+- Definicja elementu Plan dostępna publicznie w Fabric REST API — zarządzanie planem jako kodem (rozdział 14)
 - Power BI jako dodatkowa warstwa konsumpcji po writeback
 
 
-11. RYZYKA I JAK JE OBEJŚĆ
--------------------------
-- Jeśli preview nie jest włączone w Twoim regionie, sprawdź Region availability for plan (preview) w dokumentacji MS.
+12. WYMAGANIA WSTĘPNE
+---------------------
+Ustawienia dzierżawy (portal administracyjny Fabric):
+
+- "Allow XMLA endpoints and Analyze in Excel with on-premises semantic models" — włączone
+- "Embed content in apps" — włączone
+- "Service principals can call Fabric public APIs" — włączone, jeśli używasz uwierzytelniania jednostką usługi
+
+Pojemność i licencje:
+
+- Semantic modele wykorzystywane w planie muszą znajdować się na pojemności P1 lub wyższej albo na pojemności Fabric (F SKU).
+- Licencje Power BI Pro i Premium Per User NIE są wspierane w scenariuszach wykorzystujących XMLA i tokeny osadzania, na których opiera się Plan.
+- Punkt końcowy XMLA musi być ustawiony na Read Only lub Read Write.
+
+Uprawnienia:
+
+- Właściciel połączenia do semantic modelu musi mieć w workspace rolę Member lub Admin.
+- Do semantic modelu wymagane są uprawnienia Admin lub Build.
+
+Dostępność regionalna:
+
+- Plan jest dostępny globalnie w ramach pojemności Microsoft Fabric. Wcześniejsza lista regionów objętych wersją zapoznawczą została wycofana z dokumentacji.
+
+
+13. ZNANE OGRANICZENIA PRODUKTU
+-------------------------------
+Warto znać je przed demo, żeby nie trafić na nie na żywo.
+
+Ograniczenia ilościowe:
+
+- Maksymalnie 25 arkuszy w jednym elemencie Plan.
+- Maksymalnie 50 wizualizacji w jednym elemencie Plan.
+- Masowe wprowadzanie danych: maksymalnie 1 mln wierszy w jednej operacji.
+- Infobridge: maksymalnie 1,2 mln komórek na pojedyncze zapytanie. Obejście polega na podziale danych na kilka arkuszy — łącznie osiągalne jest około 5 mln komórek.
+- Writeback: maksymalnie 1,2 mln komórek na pojedynczą operację.
+
+Ograniczenia funkcjonalne:
+
+- Brak wsparcia dla użytkowników zewnętrznych Microsoft Entra B2B.
+- Brak wsparcia dla łączy prywatnych (private links).
+- Semantic modele w obszarze "My workspace" nie są wspierane.
+- Semantic model w trybie Direct Lake lub DirectQuery wymaga połączenia ze stałymi poświadczeniami; logowanie jednokrotne (SSO) nie jest wspierane. Tryb Import działa bez ograniczeń.
+- Obsługiwane metody uwierzytelniania to OAuth 2.0 oraz jednostka usługi (service principal).
+- NIE zmieniaj nazwy semantic modelu ani nazwy workspace po utworzeniu planu — spowoduje to uszkodzenie elementu Plan.
+- Rola Contributor nie pozwala tworzyć ani udostępniać połączeń chmurowych oraz elementów Plan wymagających tokenów osadzania.
+- Przy wdrożeniu CI/CD z użyciem jednostki usługi baza danych aplikacji nie jest tworzona automatycznie.
+- PowerTable nie obsługuje zabezpieczeń na poziomie wiersza definiowanych po stronie bazy danych.
+
+
+14. PLAN W FABRIC REST API - ZARZĄDZANIE PLANEM JAKO KODEM
+-----------------------------------------------------------
+Definicja elementu Plan jest publicznie udokumentowana w Fabric REST API, co oznacza, że plan można tworzyć, wersjonować i wdrażać programistycznie, tak samo jak inne elementy Fabric. To istotna zmiana z perspektywy zespołów, które chcą traktować model planistyczny jak kod.
+
+Definicja ma format JSON i jest przekazywana w postaci zakodowanej (InlineBase64). Składa się z części:
+
+- definition.json — część wymagana; zawiera referencję do semantic modelu (connection i semanticModel) oraz listę arkuszy z ich typami: Planning, PowerTable lub Intelligence
+- .platform — metadane elementu, w tym typ "Plan"
+- Sheets/{SheetID}/Planning/Properties/properties.json — właściwości arkusza planistycznego
+- Sheets/{SheetID}/Planning/DataInput/dataInput.json — konfiguracja kolumn wprowadzania danych
+- Sheets/{SheetID}/Planning/InsertRows/insertRows.json — konfiguracja wstawiania wierszy
+- Sheets/{SheetID}/Planning/Scenarios/scenarios.json — definicje scenariuszy
+- Sheets/{SheetID}/Planning/Writeback/writeback.json — konfiguracja writeback
+- Sheets/{SheetID}/ConnectedPlanning/InfoBridge/infobridge.json — konfiguracja Infobridge
+- Sheets/{SheetID}/Intelligence/Properties/properties.json — właściwości arkusza Intelligence
+- Sheets/{SheetID}/PowerTable/... — konfiguracja PowerTable (Approvals, Automations, ColumnConfigs, Forms, Properties, Settings, Source)
+
+Co z tego wynika dla klienta:
+
+- konfiguracja scenariuszy, kolumn wejściowych i writeback jest artefaktem tekstowym, który można trzymać w repozytorium Git,
+- promocja planu między środowiskami (dev, test, prod) może przebiegać przez potok wdrożeniowy,
+- dla optymalnej pracy CI/CD zaleca się tworzenie połączenia do semantic modelu z użyciem jednostki usługi i nadanie jej dostępu we wszystkich środowiskach, dzięki czemu to samo połączenie można wykorzystać ponownie po wdrożeniu.
+
+To dobry materiał na rozmowę z zespołem platformowym, jeśli w sali są architekci lub inżynierowie danych.
+
+
+15. ROZLICZANIE I LICZNIKI POJEMNOŚCI
+-------------------------------------
+Planowanie w Fabric rozlicza się z pojemności Fabric (CU), tak jak pozostałe obciążenia. Wprowadzono dedykowane liczniki rozliczeniowe dla planowania. W publicznym cenniku Azure widoczne są cztery pozycje:
+
+- Fabric Planning - Planner Sessions Capacity Usage
+- Fabric Planning - Viewer Sessions Capacity Usage
+- Fabric Planning - Stakeholder Sessions Capacity Usage
+- Fabric Planning - Automated Jobs Capacity Usage
+
+Wnioski praktyczne:
+
+- model rozliczeń jest sesyjny i rozróżnia trzy role użytkownika: planistę, przeglądającego oraz interesariusza,
+- zadania automatyczne (na przykład zaplanowane obliczenia i zapisy) mają własny licznik,
+- wszystkie cztery liczniki są rozliczane według stawki za jednostkę pojemności na godzinę obowiązującej dla danego regionu, czyli w tej samej walucie rozliczeniowej co reszta Fabric,
+- nie ma osobnej opłaty licencyjnej per użytkownik planistyczny — koszt jest pochodną zużycia pojemności.
+
+Aktualne stawki za jednostkę pojemności należy odczytać z cennika Microsoft Fabric dla właściwego regionu (linki w rozdziale 21).
+
+
+16. RYZYKA I JAK JE OBEJŚĆ
+--------------------------
+- Jeśli semantic model działa w trybie Direct Lake i połączenie korzysta z SSO, Planning sheet nie podłączy danych. Utwórz połączenie ze stałymi poświadczeniami zgodnie z ETAPEM 4 albo zbuduj model w trybie Import.
+- Jeśli w Planning sheet zejdziesz na poziom produktu lub centrum kosztowego, zapytanie może przekroczyć limit 1,2 mln komórek. Trzymaj się granulacji Region x Kategoria x Miesiąc.
+- Nie zmieniaj nazwy workspace ani semantic modelu po utworzeniu planu — element Plan przestanie działać.
 - Jeśli writeback nie jest jeszcze skonfigurowany, użyj pliku writeback_demo_long.csv do pokazania docelowego kształtu danych.
 - Jeśli chcesz skrócić demo, ogranicz detal do Region x Category x Month zamiast pełnej hierarchii.
 - Jeśli semantic model nie odświeżył się po załadowaniu danych, sprawdź ustawienia refreshu w Lakehouse.
 - Scenariusze tworzy się w UI Planning sheet (Model > Scenario), nie przez import CSV — upewnij się, że scenario_drivers.csv służy tylko jako karta referencyjna.
+- Jeśli demo prowadzisz dla użytkowników spoza organizacji, pamiętaj, że Entra B2B nie jest wspierane — przygotuj konta w dzierżawie demo.
+- Generowanie pełnego pakietu danych trwa kilka minut i tworzy ponad 5,7 mln wierszy. Zrób to dzień wcześniej, nie w trakcie prezentacji.
 
 
-12. REKOMENDOWANY MINIMALNY ZESTAW MIAR DO LIVE DEMO
+17. REKOMENDOWANY MINIMALNY ZESTAW MIAR DO LIVE DEMO
 ----------------------------------------------------
 - Net Revenue
 - Discount
@@ -449,31 +712,75 @@ Warto powtarzać te tezy:
 - Units
 
 
-13. REZULTAT KOŃCOWY
+18. REZULTAT KOŃCOWY
 --------------------
-Po zakończeniu demo odbiorca powinien zobaczyć, że Microsoft Fabric Planning:
+Po zakończeniu demo odbiorca powinien zobaczyć, że planowanie w Microsoft Fabric:
 
 - wspiera proces planowania i forecastingu w tym samym środowisku co analityka,
 - wykorzystuje istniejący semantic model,
 - pozwala na manual input i scenario modeling,
 - zapisuje wynik do kontrolowanego writeback,
+- jest zarządzalne jak kod dzięki publicznej definicji elementu w REST API,
 - skraca drogę od insight do decyzji i do nowego planu.
 
 
-14. PLIKI W TYM REPOZYTORIUM
----------------------------
-- Dokument scenariusza: FabricPlanningDemoScenario.txt
-- Generator danych: scripts\\generate_fabric_planning_demo_data.py
-- Wygenerowane dane: katalog datasets
+19. PLIKI W TYM REPOZYTORIUM
+----------------------------
+- Dokument scenariusza (polski): FabricPlanningDemoScenario.txt
+- Dokument scenariusza (polski, DOCX): FabricPlanningDemoScenario.docx
+- Dokument scenariusza (angielski): FabricPlanningDemoScenario.en.md
+- Dokument scenariusza (angielski, DOCX): FabricPlanningDemoScenario.en.docx
+- Generator danych: scripts\generate_fabric_planning_demo_data.py
+- Generator wersji polskiej DOCX: scripts\generate_docx.py
+- Wygenerowane dane: katalog datasets (tworzony lokalnie, wyłączony z repozytorium przez .gitignore)
 
 
-15. PROPOZYCJA DALSZEGO ROZWINIĘCIA
+20. ZMIANY W TEJ WERSJI DOKUMENTU
+---------------------------------
+Wersja 2.0 aktualizuje treść do stanu produktu na dzień 5 sierpnia 2026:
+
+- Zaktualizowano nazewnictwo: dokumentacja produktu znajduje się obecnie w sekcji Fabric IQ, a element nie jest już oznaczany jako "preview" w opisie produktu.
+- Usunięto odwołanie do listy regionów wersji zapoznawczej — plan jest dostępny globalnie w ramach pojemności Fabric.
+- Dodano rozdział 15 o dedykowanych licznikach rozliczeniowych dla planowania.
+- Dodano rozdział 12 z wymaganiami wstępnymi (ustawienia dzierżawy, XMLA, wymagana pojemność, brak wsparcia dla Pro i PPU).
+- Dodano rozdział 13 ze znanymi ograniczeniami produktu.
+- Dodano rozdział 14 o publicznej definicji elementu Plan w Fabric REST API.
+- Dodano rozdział 7 ze scenariuszami biznesowymi opartymi na faktycznych parametrach danych.
+- Poprawiono ETAP 7: źródłem średniej dla inicjalizacji forecastu były wcześniej okresy roku 2026, w których dane demo nie zawierają żadnych actuals. Poprawnym źródłem są ostatnie zamknięte kwartały roku 2025.
+- Poprawiono rozdział 5: katalog datasets nie jest częścią repozytorium i musi zostać wygenerowany lokalnie. Dodano polecenie generujące.
+- Poprawiono nazwy kolumn w miarach budżetowych i forecastowych w ETAPIE 2, tak aby odpowiadały nagłówkom plików CSV tworzonych przez generator.
+- Dodano ostrzeżenie o trybie Direct Lake i braku wsparcia dla SSO, istotne dla modelu budowanego na Lakehouse.
+- Uzupełniono rozdział 6 o konkretne parametry wbudowane w dane.
+- Zweryfikowano liczby wierszy przez uruchomienie generatora.
+
+
+21. ŹRÓDŁA
+----------
+Dokumentacja produktu:
+
+- Przegląd planowania: https://learn.microsoft.com/fabric/iq/plan/overview
+- Wymagania wstępne: https://learn.microsoft.com/fabric/iq/plan/overview-prerequisites
+- Znane ograniczenia: https://learn.microsoft.com/fabric/iq/plan/overview-limitations
+- Połączenie do semantic modelu: https://learn.microsoft.com/fabric/iq/plan/planning-how-to-create-semantic-model-connection
+- Definicja elementu Plan w REST API: https://learn.microsoft.com/rest/api/fabric/articles/item-management/definitions/plan-definition
+
+Licencjonowanie i koszty:
+
+- Licencje Microsoft Fabric: https://learn.microsoft.com/fabric/enterprise/licenses
+- Zakup subskrypcji: https://learn.microsoft.com/fabric/enterprise/buy-subscription
+- Cennik Microsoft Fabric: https://azure.microsoft.com/pricing/details/microsoft-fabric/
+
+Weryfikacja liczników rozliczeniowych: publiczne API cennika detalicznego Azure (prices.azure.com), filtr serviceName eq 'Microsoft Fabric', stan na 5 sierpnia 2026.
+
+
+22. PROPOZYCJA DALSZEGO ROZWINIĘCIA
 -----------------------------------
 Jeżeli chcesz, kolejnym krokiem mogę przygotować:
 
 - gotowy model tabel dla Warehouse / Lakehouse,
-- przykładowe miary DAX,
+- przykładowe miary DAX w pełnej postaci,
 - propozycję layoutu raportu Power BI,
 - skrypt SQL do tabeli writeback,
-- krótszą wersję "executive demo",
+- krótszą wersję "executive demo" na 20 minut,
+- przykładową definicję elementu Plan w formacie REST API do wdrożenia przez potok CI/CD,
 - wersję pod konkretną branżę, np. finance, retail, manufacturing lub sales planning.

@@ -1,40 +1,33 @@
-# Advanced row model: practical notes
+# Zaawansowany model wierszowy: notatki praktyczne
 
-Practical notes on the **row model** in Plan (Microsoft Fabric IQ): building a row hierarchy, writing formulas that reference rows inside groups, configuring Data Input rows, and preparing Lakehouse data for a Direct Lake semantic model.
+[English version](README.en.md)
 
-The main document is in Polish. Polish readers can start with [README.pl.md](README.pl.md).
+Notatki o modelu wierszowym (row model) w elemencie Plan w Microsoft Fabric IQ. Opisują budowę hierarchii wierszy, formuły odwołujące się do wierszy w grupach, konfigurację wierszy Data Input i przygotowanie danych w Lakehouse pod model semantyczny Direct Lake.
 
-## Contents
+Główny dokument to [Zaawansowany_model_wierszowy.md](Zaawansowany_model_wierszowy.md), a jego wersja Word leży w `docx\`. Repozytorium nie zawiera danych. Przykłady dotyczą fikcyjnej firmy Contoso.
 
-| Path | Purpose |
-| --- | --- |
-| [`Zaawansowany_model_wierszowy.md`](Zaawansowany_model_wierszowy.md) | Main document (Polish) |
-| `docx\Zaawansowany_model_wierszowy.docx` | Word export of the main document |
-| `scripts\fabric_api.py` | Python helpers for Fabric and Power BI REST APIs (Azure CLI tokens, long-running operations, item definitions, DAX `executeQueries`, OneLake upload). No IDs are hardcoded. |
-| `scripts\zaladuj_parquet_z_datami.ipynb` | Lakehouse notebook that loads Parquet files and casts `TIMESTAMP_NTZ` columns to `date` before writing Delta tables |
+Tezy w dokumencie mają oznaczenie `[Learn]` z linkiem do Microsoft Learn albo `[Test]`, jeśli pochodzą z ręcznego testu w 2026 roku. Plan jest w wersji preview, więc obserwacje z testów warto sprawdzić u siebie.
 
-No data is included. Examples use a fictional company, Contoso.
+## Najważniejsze wnioski
 
-## How claims are marked
+Hierarchię lepiej budować przyciskami Add Child i Add Sibling. Bulk Insert dał w teście płaską listę, a wiersz Aggregate nad niewciętymi wierszami pozostaje pusty.
 
-Every statement in the main document is tagged either `[Learn]`, with a link to the Microsoft Learn article that confirms it, or `[Test]`, meaning it was observed in a hands-on test in 2026 and may have changed since. Plan is in preview, so re-check `[Test]` items on your tenant.
+Do wiersza w grupie odwołuje się ścieżką, na przykład `[Zalozenia].[Zalozenie wzrostu IT]`. Usunięty i ponownie dodany wiersz ma nowy identyfikator, więc formuły trzeba wpisać jeszcze raz.
 
-## Key points
+Tryb Row w Data Input pokazuje tylko wiersze typu Data Source. Stałe założenia wygodniej ustawić w trybie Static.
 
-1. Build the hierarchy with **Add Child / Add Sibling**. In testing, Bulk Insert produced a flat list, and an Aggregate row over non-indented children stays empty.
-2. Reference a row inside a group by its path, for example `[Zalozenia].[Zalozenie wzrostu IT]`. A deleted and re-created row gets a new id, so formulas that pointed at it must be re-entered.
-3. In Data Input, the **Row** option lists only rows of type Data Source. Use **Static** for constant assumptions.
-4. Direct Lake semantic models do not support `TIMESTAMP_NTZ`. Load to Tables offers no schema control, so cast dates in a notebook or store the month as text.
-5. Current Learn documentation says Plan connects to semantic models with the signed-in identity, without a shared cloud connection. An earlier test needed an OAuth 2.0 cloud connection with SSO disabled for a Direct Lake model. Treat that as a fallback.
+Modele Direct Lake nie czytają kolumn TIMESTAMP_NTZ. Load to Tables nie pozwala ustawić schematu, dlatego daty trzeba rzutować w notebooku albo trzymać miesiąc jako tekst.
 
-## Rebuild the Word document
+Według aktualnej dokumentacji Plan łączy się z modelem tożsamością zalogowanego użytkownika. We wcześniejszym teście model Direct Lake wymagał połączenia w chmurze OAuth 2.0 z wyłączonym SSO, co dziś można traktować jako obejście awaryjne.
 
-From this directory:
+## Skrypty
+
+`scripts\fabric_api.py` zawiera funkcje pomocnicze do REST API Fabric i Power BI. Tokeny pobiera przez Azure CLI, a identyfikatory przyjmuje jako parametry.
+
+`scripts\zaladuj_parquet_z_datami.ipynb` wczytuje pliki Parquet z folderu w Lakehouse, rzutuje kolumny TIMESTAMP_NTZ na `date` i zapisuje tabele Delta. Logikę rzutowania sprawdziłem w lokalnym PySpark, notebooka nie uruchamiałem w Fabric.
+
+## Eksport do Word
 
 ```
 & 'C:\Program Files\Pandoc\pandoc.exe' Zaawansowany_model_wierszowy.md -o docx\Zaawansowany_model_wierszowy.docx --toc -V lang=pl-PL --reference-doc=..\assets\microsoft-reference.docx
 ```
-
-## Status
-
-The notebook's casting logic was checked in local PySpark. The notebook itself has not been run in Fabric.

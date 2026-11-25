@@ -1,75 +1,77 @@
-# Microsoft Fabric Planning — Demo
+# Microsoft Fabric Planning: demo
 
-Demo scenario, dataset generator and business talk track for **Plan**, the planning item in the Microsoft Fabric IQ family.
+Wersja angielska: [README.en.md](README.en.md).
 
-Content verified against Microsoft Learn on **5 August 2026** (document version 2.0).
+Scenariusz demo, generator danych i narracja biznesowa dla **Plan**, elementu planistycznego z rodziny Microsoft Fabric IQ.
 
-## Start here
+Treść sprawdzona z Microsoft Learn **5 sierpnia 2026** (wersja dokumentu 2.0).
 
-| Document | Language | Format |
+## Od czego zacząć
+
+| Dokument | Język | Format |
 | --- | --- | --- |
-| [`FabricPlanningDemoScenario.txt`](FabricPlanningDemoScenario.txt) | Polish | plain text |
-| `FabricPlanningDemoScenario.docx` | Polish | Word |
-| [`FabricPlanningDemoScenario.en.md`](FabricPlanningDemoScenario.en.md) | English | Markdown |
-| `FabricPlanningDemoScenario.en.docx` | English | Word |
+| [`FabricPlanningDemoScenario.txt`](FabricPlanningDemoScenario.txt) | polski | zwykły tekst |
+| `FabricPlanningDemoScenario.docx` | polski | Word |
+| [`FabricPlanningDemoScenario.en.md`](FabricPlanningDemoScenario.en.md) | angielski | Markdown |
+| `FabricPlanningDemoScenario.en.docx` | angielski | Word |
 
-Both language versions carry the same content: demo flow (11 stages), dataset design, eight business scenarios, prerequisites, product limits, REST API notes and billing meters.
+Obie wersje językowe mają tę samą treść: przebieg demo (11 etapów), projekt zbioru danych, osiem scenariuszy biznesowych, wymagania wstępne, ograniczenia produktu, uwagi o REST API i licznikach rozliczeniowych.
 
-## Three things worth knowing before you run the demo
+## Trzy rzeczy, które warto wiedzieć przed uruchomieniem demo
 
-1. **The demo data is not in this repository.** The `datasets` directory is git-ignored because the full package exceeds 5.7 million rows. Generate it first — see below.
-2. **Power BI Pro and PPU are not enough.** Plan relies on XMLA endpoints and embed tokens, so the workspace needs a Fabric (F SKU) or Power BI Premium (P SKU) capacity. Planning is billed through dedicated capacity meters for planner, viewer and stakeholder sessions plus automated jobs.
-3. **A Lakehouse-based semantic model defaults to Direct Lake**, which planning sheets support only with a fixed-credential connection — single sign-on is not supported. Either configure that connection or build the model in Import mode. Note that current Learn documentation describes connecting Plan with the signed-in identity instead of a shared connection; see [`advanced-row-model/`](advanced-row-model/README.md) for details and test notes.
+1. **Danych demo nie ma w repozytorium.** Katalog `datasets` jest w `.gitignore`, bo cały pakiet ma ponad 5,7 mln wierszy. Najpierw go wygeneruj, opis poniżej.
+2. **Power BI Pro i PPU nie wystarczą.** Plan korzysta z endpointów XMLA i tokenów embed, więc obszar roboczy potrzebuje capacity Fabric (F SKU) albo Power BI Premium (P SKU). Planowanie jest rozliczane osobnymi licznikami capacity dla sesji plannerów, przeglądających i interesariuszy oraz dla zadań automatycznych.
+3. **Model semantyczny na Lakehouse domyślnie działa w trybie Direct Lake**, a arkusze planistyczne obsługują go tylko przez połączenie ze stałymi poświadczeniami, bez single sign-on. Skonfiguruj takie połączenie albo zbuduj model w trybie Import. Aktualna dokumentacja Learn opisuje łączenie Plan z tożsamością zalogowanego użytkownika zamiast wspólnego połączenia. Szczegóły i notatki z testów są w [`advanced-row-model/`](advanced-row-model/README.md).
 
-## Advanced row model notes
+## Zaawansowany model wierszowy
 
-[`advanced-row-model/`](advanced-row-model/README.md) collects practical notes on the Plan row model: building a row hierarchy with Add Child and Add Sibling, formula paths such as `[Group].[Row]`, Data Input rows (Row vs Static), and preparing Lakehouse data for Direct Lake (`TIMESTAMP_NTZ` is not supported). Each claim is either linked to Microsoft Learn or marked as a test observation. The main document is in Polish and contains no data.
+W [`advanced-row-model/`](advanced-row-model/README.md) są praktyczne notatki o modelu wierszowym Plan: budowa hierarchii wierszy przez Add Child i Add Sibling, ścieżki w formułach w rodzaju `[Grupa].[Wiersz]`, wiersze Data Input (Row i Static) oraz przygotowanie danych Lakehouse pod Direct Lake (`TIMESTAMP_NTZ` nie jest obsługiwany). Każda teza ma link do Microsoft Learn albo jest oznaczona jako obserwacja z testu. Dokument nie zawiera danych.
 
-## Generate the demo data
+## Generowanie danych demo
 
 ```
 python scripts\generate_fabric_planning_demo_data.py
 ```
 
-Deterministic (`random_seed = 42`), takes a few minutes, and produces a `datasets` directory:
+Generator jest deterministyczny (`random_seed = 42`), działa kilka minut i tworzy katalog `datasets`:
 
-| File | Rows |
+| Plik | Wiersze |
 | --- | ---: |
 | dim_date_month.csv | 48 |
 | dim_region.csv | 6 |
 | dim_department.csv | 12 |
 | dim_cost_center.csv | 720 |
 | dim_product.csv | 176 |
-| fact_actuals_monthly.csv | 3,041,280 |
-| fact_budget_seed_2026.csv | 1,520,640 |
-| fact_forecast_seed_2026.csv | 1,140,480 |
-| scenario_drivers.csv | 1,728 |
-| writeback_demo_long.csv | 6,912 |
+| fact_actuals_monthly.csv | 3 041 280 |
+| fact_budget_seed_2026.csv | 1 520 640 |
+| fact_forecast_seed_2026.csv | 1 140 480 |
+| scenario_drivers.csv | 1 728 |
+| writeback_demo_long.csv | 6 912 |
 
-## Rebuild the documents
+## Odtworzenie dokumentów
 
 ```
-python scripts\generate_docx.py      # Polish DOCX from the .txt source
-python scripts\generate_en_docx.py   # English DOCX from the .md source (requires pandoc)
+python scripts\generate_docx.py      # polski DOCX ze źródła .txt
+python scripts\generate_en_docx.py   # angielski DOCX ze źródła .md (wymaga pandoc)
 ```
 
-Open the generated file in Word once to refresh the table of contents.
+Po wygenerowaniu otwórz plik raz w Wordzie, żeby odświeżyć spis treści.
 
-## Repository layout
+## Układ repozytorium
 
-| Path | Purpose |
+| Ścieżka | Przeznaczenie |
 | --- | --- |
-| `scripts\generate_fabric_planning_demo_data.py` | Demo dataset generator |
-| `scripts\generate_docx.py` | Polish DOCX builder (python-docx) |
-| `scripts\generate_en_docx.py` | English DOCX builder (pandoc) |
-| `assets\microsoft-reference.docx` | Microsoft-styled pandoc reference template |
-| `advanced-row-model\` | Row model notes (Polish), helper scripts and a date-casting notebook |
-| `datasets\` | Generated data — local only, excluded by `.gitignore` |
+| `scripts\generate_fabric_planning_demo_data.py` | generator danych demo |
+| `scripts\generate_docx.py` | budowa polskiego DOCX (python-docx) |
+| `scripts\generate_en_docx.py` | budowa angielskiego DOCX (pandoc) |
+| `assets\microsoft-reference.docx` | szablon referencyjny pandoc w stylu Microsoft |
+| `advanced-row-model\` | notatki o modelu wierszowym, skrypty pomocnicze i notebook rzutujący daty |
+| `datasets\` | wygenerowane dane, tylko lokalnie, wykluczone przez `.gitignore` |
 
-## Sources
+## Źródła
 
-- Planning overview — <https://learn.microsoft.com/fabric/iq/plan/overview>
-- Prerequisites — <https://learn.microsoft.com/fabric/iq/plan/overview-prerequisites>
-- Known limitations — <https://learn.microsoft.com/fabric/iq/plan/overview-limitations>
-- Semantic model connection — <https://learn.microsoft.com/fabric/iq/plan/planning-how-to-create-semantic-model-connection>
-- Plan item definition (REST API) — <https://learn.microsoft.com/rest/api/fabric/articles/item-management/definitions/plan-definition>
+- Przegląd Planning: <https://learn.microsoft.com/fabric/iq/plan/overview>
+- Wymagania wstępne: <https://learn.microsoft.com/fabric/iq/plan/overview-prerequisites>
+- Znane ograniczenia: <https://learn.microsoft.com/fabric/iq/plan/overview-limitations>
+- Połączenie z modelem semantycznym: <https://learn.microsoft.com/fabric/iq/plan/planning-how-to-create-semantic-model-connection>
+- Definicja elementu Plan (REST API): <https://learn.microsoft.com/rest/api/fabric/articles/item-management/definitions/plan-definition>

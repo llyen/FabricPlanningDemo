@@ -19,7 +19,11 @@ Both language versions carry the same content: demo flow (11 stages), dataset de
 
 1. **The demo data is not in this repository.** The `datasets` directory is git-ignored because the full package exceeds 5.7 million rows. Generate it first — see below.
 2. **Power BI Pro and PPU are not enough.** Plan relies on XMLA endpoints and embed tokens, so the workspace needs a Fabric (F SKU) or Power BI Premium (P SKU) capacity. Planning is billed through dedicated capacity meters for planner, viewer and stakeholder sessions plus automated jobs.
-3. **A Lakehouse-based semantic model defaults to Direct Lake**, which planning sheets support only with a fixed-credential connection — single sign-on is not supported. Either configure that connection or build the model in Import mode.
+3. **A Lakehouse-based semantic model defaults to Direct Lake**, which planning sheets support only with a fixed-credential connection — single sign-on is not supported. Either configure that connection or build the model in Import mode. Note that current Learn documentation describes connecting Plan with the signed-in identity instead of a shared connection; see [`advanced-row-model/`](advanced-row-model/README.md) for details and test notes.
+
+## Advanced row model notes
+
+[`advanced-row-model/`](advanced-row-model/README.md) collects practical notes on the Plan row model: building a row hierarchy with Add Child and Add Sibling, formula paths such as `[Group].[Row]`, Data Input rows (Row vs Static), and preparing Lakehouse data for Direct Lake (`TIMESTAMP_NTZ` is not supported). Each claim is either linked to Microsoft Learn or marked as a test observation. The main document is in Polish and contains no data.
 
 ## Generate the demo data
 
@@ -59,6 +63,7 @@ Open the generated file in Word once to refresh the table of contents.
 | `scripts\generate_docx.py` | Polish DOCX builder (python-docx) |
 | `scripts\generate_en_docx.py` | English DOCX builder (pandoc) |
 | `assets\microsoft-reference.docx` | Microsoft-styled pandoc reference template |
+| `advanced-row-model\` | Row model notes (Polish), helper scripts and a date-casting notebook |
 | `datasets\` | Generated data — local only, excluded by `.gitignore` |
 
 ## Sources
